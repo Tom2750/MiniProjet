@@ -61,6 +61,8 @@ typedef struct Player {
     bool isLeftTeam;                // This player belongs to the left or to the right team
     bool isPlayer;                  // If is a player or an AI
     bool isAlive;
+
+    bool weapon0;                     //0: normal 1: rafale de petites sphères
 } Player;
 
 typedef struct Building {
@@ -184,6 +186,7 @@ void UpdateGame(void)
 
         if (!pause)
         {
+            if (IsKeyPressed('Q')) player[playerTurn].weapon0 = !player[playerTurn].weapon0;
             if (!ballOnAir) ballOnAir = UpdatePlayer(playerTurn); // If we are aiming
             else
             {
@@ -269,7 +272,7 @@ void DrawGame(void)
             if (!ballOnAir)
             {
                 // Draw shot information
-                /*
+                
                 if (player[playerTurn].isLeftTeam)
                 {
                     DrawText(TextFormat("Previous Point %i, %i", (int)player[playerTurn].previousPoint.x, (int)player[playerTurn].previousPoint.y), 20, 20, 20, DARKBLUE);
@@ -288,7 +291,7 @@ void DrawGame(void)
                     DrawText(TextFormat("Aiming Angle %i", player[playerTurn].aimingAngle), screenWidth*3/4, 140, 20, DARKBLUE);
                     DrawText(TextFormat("Aiming Power %i", player[playerTurn].aimingPower), screenWidth*3/4, 170, 20, DARKBLUE);
                 }
-                */
+                
 
                 // Draw aim
                 if (player[playerTurn].isLeftTeam)
@@ -299,9 +302,15 @@ void DrawGame(void)
                                  player[playerTurn].previousPoint, GRAY);
 
                     // Actual aiming
+                    if (player[playerTurn].weapon0){
                     DrawTriangle((Vector2){ player[playerTurn].position.x - player[playerTurn].size.x/4, player[playerTurn].position.y - player[playerTurn].size.y/4 },
                                  (Vector2){ player[playerTurn].position.x + player[playerTurn].size.x/4, player[playerTurn].position.y + player[playerTurn].size.y/4 },
                                  player[playerTurn].aimingPoint, DARKBLUE);
+                    } else {
+                    DrawTriangle((Vector2){ player[playerTurn].position.x - player[playerTurn].size.x/4, player[playerTurn].position.y - player[playerTurn].size.y/4 },
+                                 (Vector2){ player[playerTurn].position.x + player[playerTurn].size.x/4, player[playerTurn].position.y + player[playerTurn].size.y/4 },
+                                 player[playerTurn].aimingPoint, DARKBROWN);
+                    }
                 }
                 else
                 {
@@ -311,9 +320,15 @@ void DrawGame(void)
                                  player[playerTurn].previousPoint, GRAY);
 
                     // Actual aiming
+                    if (player[playerTurn].weapon0){
                     DrawTriangle((Vector2){ player[playerTurn].position.x - player[playerTurn].size.x/4, player[playerTurn].position.y + player[playerTurn].size.y/4 },
                                  (Vector2){ player[playerTurn].position.x + player[playerTurn].size.x/4, player[playerTurn].position.y - player[playerTurn].size.y/4 },
                                  player[playerTurn].aimingPoint, MAROON);
+                    } else {
+                    DrawTriangle((Vector2){ player[playerTurn].position.x - player[playerTurn].size.x/4, player[playerTurn].position.y + player[playerTurn].size.y/4 },
+                                 (Vector2){ player[playerTurn].position.x + player[playerTurn].size.x/4, player[playerTurn].position.y - player[playerTurn].size.y/4 },
+                                 player[playerTurn].aimingPoint, DARKBROWN);
+                    }
                 }
             }
 
@@ -380,6 +395,7 @@ static void InitPlayers(void)
     for (int i = 0; i < MAX_PLAYERS; i++)
     {
         player[i].isAlive = true;
+        player[i].weapon0 = true;
 
         // Decide the team of this player
         if (i % 2 == 0) player[i].isLeftTeam = true;
@@ -420,7 +436,7 @@ static void InitPlayers(void)
 }
 
 static bool UpdatePlayer(int playerTurn)
-{
+{   
     // If we are aiming at the firing quadrant, we calculate the angle
     if (GetMousePosition().y <= player[playerTurn].position.y)
     {
@@ -547,7 +563,7 @@ static bool UpdateBall(int playerTurn)
         for (int i = 0; i < MAX_BUILDINGS; i++)
         {
             if (CheckCollisionCircleRec(ball.position, ball.radius, building[i].rectangle))
-            {
+            {  
                 // We set the impact point
                 player[playerTurn].impactPoint.x = ball.position.x;
                 player[playerTurn].impactPoint.y = ball.position.y + ball.radius;
