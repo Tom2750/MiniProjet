@@ -96,6 +96,7 @@ static Player player[MAX_PLAYERS] = { 0 };
 static Building building[MAX_BUILDINGS] = { 0 };
 static Explosion explosion[MAX_EXPLOSIONS] = { 0 };
 static Ball ball = { 0 };
+static Ball balles[4];
 
 static int playerTurn = 0;
 static bool ballOnAir = false;
@@ -165,6 +166,13 @@ void InitGame(void)
     ballOnAir = false;
     ball.active = false;
 
+    for(int i = 0; i<4 ;i++){
+    balles[i].radius = 10;
+    ballOnAir = false;
+    balles[i].active = false;
+    }
+
+
     InitBuildings();
     InitPlayers();
 
@@ -185,8 +193,10 @@ void UpdateGame(void)
         if (IsKeyPressed('P')) pause = !pause;
 
         if (!pause)
-        {
+        {   
+            //Changement d'arme
             if (IsKeyPressed('Q')) player[playerTurn].weapon0 = !player[playerTurn].weapon0;
+
             if (!ballOnAir) ballOnAir = UpdatePlayer(playerTurn); // If we are aiming
             else
             {
@@ -452,16 +462,22 @@ static bool UpdatePlayer(int playerTurn)
 
             // Ball fired
             if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
-            {
+            {   
                 player[playerTurn].previousPoint = player[playerTurn].aimingPoint;
                 player[playerTurn].previousPower = player[playerTurn].aimingPower;
                 player[playerTurn].previousAngle = player[playerTurn].aimingAngle;
-                ball.position = player[playerTurn].position;
 
+                if(player[playerTurn].weapon0){
+                    ball.position = player[playerTurn].position;
+                } else {
+                    for(int j = 0; j < 4; j++){
+                        balles[j].position = (Vector2){player[playerTurn].position.x, player[playerTurn].position.y};
+                    }
+                }
                 return true;
             }
         }
-        // Right team
+        // Right team PAS ENCORE FAIT
         else if (!player[playerTurn].isLeftTeam && GetMousePosition().x <= player[playerTurn].position.x)
         {
             // Distance (calculating the fire power)
@@ -507,22 +523,46 @@ static bool UpdateBall(int playerTurn)
     if (!ball.active)
     {
         if (player[playerTurn].isLeftTeam)
-        {
-            ball.speed.x = cos(player[playerTurn].previousAngle*DEG2RAD)*player[playerTurn].previousPower*3/DELTA_FPS;
-            ball.speed.y = -sin(player[playerTurn].previousAngle*DEG2RAD)*player[playerTurn].previousPower*3/DELTA_FPS;
-            ball.active = true;
+        {   
+            if(player[playerTurn].weapon0){
+                ball.speed.x = cos(player[playerTurn].previousAngle*DEG2RAD)*player[playerTurn].previousPower*3/DELTA_FPS;
+                ball.speed.y = -sin(player[playerTurn].previousAngle*DEG2RAD)*player[playerTurn].previousPower*3/DELTA_FPS;
+                ball.active = true;
+            } else {
+                for(int i = 0; i<4 ; i++){
+                    balles[i].speed.x = cos(player[playerTurn].previousAngle*DEG2RAD)*player[playerTurn].previousPower*3/DELTA_FPS;
+                    balles[i].speed.y = -sin(player[playerTurn].previousAngle*DEG2RAD)*player[playerTurn].previousPower*3/DELTA_FPS;
+                    ball.active = true;
+                }
+            }
         }
         else
-        {
-            ball.speed.x = -cos(player[playerTurn].previousAngle*DEG2RAD)*player[playerTurn].previousPower*3/DELTA_FPS;
-            ball.speed.y = -sin(player[playerTurn].previousAngle*DEG2RAD)*player[playerTurn].previousPower*3/DELTA_FPS;
-            ball.active = true;
+        {   
+            if(player[playerTurn].weapon0){
+                ball.speed.x = -cos(player[playerTurn].previousAngle*DEG2RAD)*player[playerTurn].previousPower*3/DELTA_FPS;
+                ball.speed.y = -sin(player[playerTurn].previousAngle*DEG2RAD)*player[playerTurn].previousPower*3/DELTA_FPS;
+                ball.active = true;
+            } else {
+                for(int i = 0; i<4; i++){
+                    balles[i].speed.x = -cos(player[playerTurn].previousAngle*DEG2RAD)*player[playerTurn].previousPower*3/DELTA_FPS;
+                    balles[i].speed.y = -sin(player[playerTurn].previousAngle*DEG2RAD)*player[playerTurn].previousPower*3/DELTA_FPS;
+                    balles[i].active = true;
+                }
+            }
         }
     }
-
-    ball.position.x += ball.speed.x;
-    ball.position.y += ball.speed.y;
-    ball.speed.y += GRAVITY/DELTA_FPS;
+    
+    if(player[playerTurn].weapon0){
+        ball.position.x += ball.speed.x;
+        ball.position.y += ball.speed.y;
+        ball.speed.y += GRAVITY/DELTA_FPS;
+    } else {
+        for(int i = 0; i<4; i++){
+            balles[i].position.x += ball.speed.x;
+            balles[i].position.y += ball.speed.y;
+            balles[i].speed.y += GRAVITY/DELTA_FPS;
+        }
+    }
 
     // Collision
     if (ball.position.x + ball.radius < 0) return true;
@@ -530,26 +570,52 @@ static bool UpdateBall(int playerTurn)
     else
     {
         // Player collision
-        for (int i = 0; i < MAX_PLAYERS; i++)
-        {
-            if (CheckCollisionCircleRec(ball.position, ball.radius,  (Rectangle){ player[i].position.x - player[i].size.x/2, player[i].position.y - player[i].size.y/2,
-                                                                                  player[i].size.x, player[i].size.y }))
-            {
-                // We can't hit ourselves
-                if (i == playerTurn) return false;
-                else
+        if(player[playerTurn].weapon0){
+            for (int i = 0; i < MAX_PLAYERS; i++)
                 {
-                    // We set the impact point
-                    player[playerTurn].impactPoint.x = ball.position.x;
-                    player[playerTurn].impactPoint.y = ball.position.y + ball.radius;
-
-                    // We destroy the player
-                    player[i].isAlive = false;
-                    return true;
+                if (CheckCollisionCircleRec(ball.position, ball.radius,  (Rectangle){ player[i].position.x - player[i].size.x/2, player[i].position.y - player[i].size.y/2,
+                                                                            player[i].size.x, player[i].size.y }))
+                {
+                    // We can't hit ourselves
+                    if (i == playerTurn) return false;
+                    else
+                    {
+                        // We set the impact point
+                        player[playerTurn].impactPoint.x = ball.position.x;
+                        player[playerTurn].impactPoint.y = ball.position.y + ball.radius;
+                        // We destroy the player
+                        player[i].isAlive = false;
+                        return true;
+                    }
+                }
+            }
+        } else {
+            for(int j = 0; j < 4; j++){
+                for (int i = 0; i < MAX_PLAYERS; i++)
+                    {
+                    if (CheckCollisionCircleRec(balles[j].position, balles[j].radius,  (Rectangle){ player[i].position.x - player[i].size.x/2, player[i].position.y - player[i].size.y/2,
+                                                                                player[i].size.x, player[i].size.y }))
+                    {
+                        // We can't hit ourselves
+                        if (i == playerTurn) return false;
+                        else
+                        {
+                            // We set the impact point
+                            player[playerTurn].impactPoint.x = balles[j].position.x;
+                            player[playerTurn].impactPoint.y = balles[j].position.y + balles[j].radius;
+                            // We destroy the player
+                            player[i].isAlive = false;
+                            return true;
+                        }
+                    }
                 }
             }
         }
+        
 
+
+
+        // TODOOOOOOOOOOOOOOOOOOOOOOOO
         // Building collision
         // NOTE: We only check building collision if we are not inside an explosion
         for (int i = 0; i < MAX_EXPLOSIONS; i++)
@@ -580,3 +646,6 @@ static bool UpdateBall(int playerTurn)
 
     return false;
 }
+
+
+// l480 et balles position, finir collision
